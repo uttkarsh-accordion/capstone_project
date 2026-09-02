@@ -1,0 +1,36 @@
+version: 2
+
+sources:
+  - name: bronze_ext
+    database: CT5_UTTKARSH_RISHI_DB
+    schema: BRONZE
+    tables:
+      - name: ext_customers
+        loaded_at_field: last_modified
+        freshness:
+          warn_after: {count: 1000, period: day}
+          error_after: {count: 2000, period: day}
+
+      - name: ext_products
+        loaded_at_field: last_modified
+        freshness:
+          warn_after: {count: 1000, period: day}
+          error_after: {count: 1012, period: day}   # tighter — meant to surface the 12-day lag
+
+      - name: ext_orders
+        loaded_at_field: last_modified
+        freshness:
+          warn_after: {count: 1000, period: day}
+          error_after: {count: 2000, period: day}
+
+      - name: ext_stores
+        loaded_at_field: last_modified
+        freshness:
+          warn_after: {count: 1000, period: day}
+          error_after: {count: 2000, period: day}
+
+      - name: ext_employees
+        loaded_at_field: last_modified
+        freshness:
+          warn_after: {count: 1000, period: day}
+          error_after: {count: 2000, period: day}
