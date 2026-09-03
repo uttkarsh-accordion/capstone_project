@@ -11,6 +11,7 @@ with source_data as (
     select
         f.value:customer_id::string        as customer_id,
         f.value                             as raw_payload,
+        f.value:last_modified_date::date as record_last_modified,
         e.FILE_NAME                         as _source_file,
         e.LAST_MODIFIED                     as last_modified_date,
         current_timestamp()                 as _loaded_at,
