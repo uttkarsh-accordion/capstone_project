@@ -16,7 +16,8 @@ transformed as (
         upper(trim(raw_payload:address:state::string))         as state,
         trim(raw_payload:address:street::string)               as street,
         trim(raw_payload:address:country::string)              as country,
-
+        {{ clean_phone('raw_payload:phone') }}      as phone,
+        {{ is_phone_invalid('raw_payload:phone') }} as is_phone_invalid,
         -- Zip code validation: must be exactly 5 digits
         case
             when regexp_like(raw_payload:address:zip_code::string, '^[0-9]{5}$')

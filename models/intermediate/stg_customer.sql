@@ -41,26 +41,8 @@ transformed as (
         end as is_email_invalid,
 
         -- Phone: reject anything containing letters BEFORE cleaning; then validate digit count
-        case
-            when raw_payload:phone::string is null then null
-            when regexp_like(raw_payload:phone::string, '.*[A-Za-z].*') then null
-            when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 10
-                then regexp_replace(raw_payload:phone::string, '[^0-9]', '')
-            when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 11
-             and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1'
-                then substr(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 2)
-            else null
-        end as phone,
-
-        case
-            when raw_payload:phone::string is null then false
-            when regexp_like(raw_payload:phone::string, '.*[A-Za-z].*') then true
-            when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 10 then false
-            when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 11
-             and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1' then false
-            else true
-        end as is_phone_invalid,
-
+        {{ clean_phone('raw_payload:phone') }}      as phone,
+        {{ is_phone_invalid('raw_payload:phone') }} as is_phone_invalid,
         clean_birth_date                                                as birth_date,
 
         -- Age calculation
