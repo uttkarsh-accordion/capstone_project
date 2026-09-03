@@ -47,7 +47,7 @@ models:
 
     # Silver layer — cleaned/conformed models
     intermediate:
-      +materialized: view
+      +materialized: table
       +schema: silver
 
     # Gold layer — dimensional models (dims, facts, reporting views)

@@ -5,6 +5,19 @@ with src_customer as (
 
 ),
 
+parsed as (
+
+    select
+        *,
+        coalesce(
+            try_to_date(raw_payload:birth_date::string, 'YYYY-MM-DD'),
+            try_to_date(raw_payload:birth_date::string, 'DD-MM-YYYY'),
+            try_to_date(raw_payload:birth_date::string, 'MM-DD-YYYY')
+        ) as clean_birth_date
+    from src_customer
+
+),
+
 transformed as (
 
     select
@@ -16,56 +29,49 @@ transformed as (
         -- Email: validate structure, null if malformed
         case
             when raw_payload:email::string is null then null
-            when regexp_like(trim(raw_payload:email::string), '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
+            when regexp_like(raw_payload:email::string, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
                 then lower(trim(raw_payload:email::string))
             else null
         end as email,
 
         case
             when raw_payload:email::string is not null
-             and not regexp_like(trim(raw_payload:email::string), '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
+             and not regexp_like(raw_payload:email::string, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
             then true else false
         end as is_email_invalid,
 
-        -- Phone: strip non-digits, drop leading country code '1' if present, then validate 10 digits
-        regexp_replace(raw_payload:phone::string, '[^0-9]', '')          as phone_digits_raw,
-
+        -- Phone: reject anything containing letters BEFORE cleaning; then validate digit count
         case
-            when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 11
-            and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1'
-                then substr(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 2)
-            else regexp_replace(raw_payload:phone::string, '[^0-9]', '')
-        end as phone_digits_only,
-
-        case
-            when regexp_replace(raw_payload:phone::string, '[^0-9]', '') is null then null
+            when raw_payload:phone::string is null then null
+            when regexp_like(raw_payload:phone::string, '.*[A-Za-z].*') then null
             when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 10
                 then regexp_replace(raw_payload:phone::string, '[^0-9]', '')
             when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 11
-            and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1'
+             and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1'
                 then substr(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 2)
             else null
         end as phone,
 
         case
             when raw_payload:phone::string is null then false
+            when regexp_like(raw_payload:phone::string, '.*[A-Za-z].*') then true
             when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 10 then false
             when length(regexp_replace(raw_payload:phone::string, '[^0-9]', '')) = 11
-            and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1' then false
+             and left(regexp_replace(raw_payload:phone::string, '[^0-9]', ''), 1) = '1' then false
             else true
         end as is_phone_invalid,
 
-        raw_payload:birth_date::date                                    as birth_date,
+        clean_birth_date                                                as birth_date,
 
         -- Age calculation
-        datediff(year, raw_payload:birth_date::date, current_date())    as age,
+        datediff(year, clean_birth_date, current_date())                as age,
 
         -- Customer segmentation (explicit bounds, no swallowed under-18s)
         case
-            when datediff(year, raw_payload:birth_date::date, current_date()) < 18 then 'Minor'
-            when datediff(year, raw_payload:birth_date::date, current_date()) between 18 and 35 then 'Young'
-            when datediff(year, raw_payload:birth_date::date, current_date()) between 36 and 55 then 'Middle-aged'
-            when datediff(year, raw_payload:birth_date::date, current_date()) >= 56 then 'Senior'
+            when datediff(year, clean_birth_date, current_date()) < 18 then 'Minor'
+            when datediff(year, clean_birth_date, current_date()) between 18 and 35 then 'Young'
+            when datediff(year, clean_birth_date, current_date()) between 36 and 55 then 'Middle-aged'
+            when datediff(year, clean_birth_date, current_date()) >= 56 then 'Senior'
             else 'Unknown'
         end as age_segment,
 
@@ -78,7 +84,7 @@ transformed as (
         _source_file,
         _loaded_at
 
-    from src_customer
+    from parsed
 
 )
 

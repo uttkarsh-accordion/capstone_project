@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_customer
+    columns:
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+      - name: age_segment
+        tests:
+          - accepted_values:
+              values: ['Minor', 'Young', 'Middle-aged', 'Senior', 'Unknown']
+
+  - name: stg_product
+    columns:
+      - name: product_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_store
+    columns:
+      - name: store_id
+        tests:
+          - unique
+          - not_null
+      - name: size_category
+        tests:
+          - accepted_values:
+              values: ['Small', 'Medium', 'Large']
+
+  - name: stg_employee
+    columns:
+      - name: employee_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_orders
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: delivery_status
+        tests:
+          - accepted_values:
+              values: ['On Time', 'Delayed', 'Potentially Delayed', 'In Transit']
+      - name: order_time_of_day
+        tests:
+          - accepted_values:
+              values: ['Morning', 'Afternoon', 'Evening', 'Night']
