@@ -20,6 +20,8 @@ vars:
   analysis_date: '2024-09-27'
 
 models:
+  elementary:
+    +schema: elementary
   my_new_project:
     # Bronze layer — raw landing models
     staging:
