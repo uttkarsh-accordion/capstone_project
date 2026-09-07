@@ -18,6 +18,12 @@ transformed as (
         trim(raw_payload:address:country::string)              as country,
         {{ clean_phone('raw_payload:phone') }}      as phone,
         {{ is_phone_invalid('raw_payload:phone') }} as is_phone_invalid,
+        case
+            when raw_payload:email::string is null then null
+            when regexp_like(raw_payload:email::string, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
+                then lower(trim(raw_payload:email::string))
+            else null
+        end as email,
         -- Zip code validation: must be exactly 5 digits
         case
             when regexp_like(raw_payload:address:zip_code::string, '^[0-9]{5}$')

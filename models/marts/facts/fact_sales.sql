@@ -1,53 +1,33 @@
-with line_items as (
-
-    select * from {{ ref('stg_orders') }}
-
-),
-
-customer_at_order_time as (
-
-    select
-        li.order_id,
-        li.product_id,
-        dc.customer_key
-    from line_items li
-    left join {{ ref('dim_customer') }} dc
-        on li.customer_id = dc.customer_id
-       and li.order_date >= dc.valid_from
-       and (dc.valid_to is null or li.order_date < dc.valid_to)
-
-)
-
 select
-    {{ dbt_utils.generate_surrogate_key(['li.order_id', 'li.product_id']) }} as sales_key,
+    {{ dbt_utils.generate_surrogate_key(['h.order_id', 'i.product_id']) }} as sales_key,
 
-    li.order_id,
-    c.customer_key,
+    h.order_id,
+    dc.customer_key,
     dp.product_key,
     ds.store_key,
     dd.date_key,
     de.employee_key,
 
-    li.quantity                 as quantity_sold,
-    li.unit_price,
-    li.quantity * li.unit_price as total_sales_amount,
-    li.line_cost                as cost_amount,
-    li.item_discount_amount     as discount_amount,
-    li.allocated_shipping_cost  as shipping_cost,
-    li.profit_amount,
-
+    i.quantity                  as quantity_sold,
+    i.unit_price,
+    i.quantity * i.unit_price   as total_sales_amount,
+    i.line_cost                 as cost_amount,
+    i.item_discount_amount      as discount_amount,
+    i.line_profit_amount        as profit_amount,
+    -- add to fact_sales.sql select list
+    h.order_shipping_cost as shipping_cost,
     ds.region,
     case
-        when li.order_source in ('mobile app', 'website') then 'Online'
+        when h.order_source in ('mobile app', 'website') then 'Online'
         else 'In-Store'
     end as sales_channel,
     dc.segment as customer_segment_impact
 
-from line_items li
-join customer_at_order_time c
-    on li.order_id = c.order_id and li.product_id = c.product_id
-left join {{ ref('dim_customer') }}  dc on c.customer_key  = dc.customer_key
-left join {{ ref('dim_product') }}   dp on li.product_id   = dp.product_id
-left join {{ ref('dim_store') }}     ds on li.store_id     = ds.store_id
-left join {{ ref('dim_date') }}      dd on cast(li.order_date as date) = dd.full_date
-left join {{ ref('dim_employee') }}  de on li.employee_id  = de.employee_id
+from {{ ref('stg_order_items') }} i
+join {{ ref('stg_order_header') }} h
+    on i.order_id = h.order_id
+left join {{ ref('dim_customer') }}  dc on h.customer_id  = dc.customer_id and dc.is_current
+left join {{ ref('dim_product') }}   dp on i.product_id   = dp.product_id
+left join {{ ref('dim_store') }}     ds on h.store_id     = ds.store_id
+left join {{ ref('dim_date') }}      dd on cast(h.order_date as date) = dd.full_date
+left join {{ ref('dim_employee') }}  de on h.employee_id  = de.employee_id

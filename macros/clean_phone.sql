@@ -1,14 +1,14 @@
 {% macro clean_phone(raw_col) %}
-    {%- set digits -%}
-        regexp_replace({{ raw_col }}::string, '[^0-9]', '')
+    {%- set digits_and_x -%}
+        regexp_replace({{ raw_col }}::string, '[^0-9xX]', '')
     {%- endset -%}
     case
         when {{ raw_col }}::string is null then null
-        when regexp_like({{ raw_col }}::string, '[A-Za-z]') then null
-        when length({{ digits }}) >= 11 and left({{ digits }}, 1) = '1'
-            then left(substr({{ digits }}, 2), 10)
-        when length({{ digits }}) >= 10
-            then left({{ digits }}, 10)
+        -- reject if it contains any letter OTHER than x/X (genuine garbage, not masking)
+        when regexp_like({{ raw_col }}::string, '[A-WYZa-wyz]') then null
+        -- accept anything from 10 to 14 digits (covers local, country-code, and the longer format seen in this dataset)
+        when length({{ digits_and_x }}) between 10 and 14
+            then {{ digits_and_x }}
         else null
     end
 {% endmacro %}

@@ -1,6 +1,7 @@
 version: 2
 
 models:
+
   - name: stg_customer
     columns:
       - name: customer_id
@@ -37,10 +38,12 @@ models:
           - unique
           - not_null
 
-  - name: stg_orders
+  - name: stg_order_header
+    description: "One row per order. Order-level attributes, delivery metrics, and order-level revenue/profit rollups from stg_order_items."
     columns:
       - name: order_id
         tests:
+          - unique
           - not_null
       - name: delivery_status
         tests:
@@ -50,3 +53,26 @@ models:
         tests:
           - accepted_values:
               values: ['Morning', 'Afternoon', 'Evening', 'Night']
+      - name: net_profit
+        description: "order_revenue minus order_cost minus order_shipping_cost minus order_tax_amount. The order-level, all-in profit figure."
+
+  - name: stg_order_items
+    description: "Order line items at (order_id, product_id) grain. Line-level facts only — no order-level attributes like customer, shipping, or tax, which live in stg_order_header."
+    columns:
+      - name: order_id
+        description: "Foreign key to stg_order_header. Not unique alone — an order can have multiple line items."
+        tests:
+          - not_null
+      - name: product_id
+        description: "Foreign key to stg_product. Combined with order_id, defines the grain of this table."
+        tests:
+          - not_null
+      - name: line_revenue
+        description: "quantity * unit_price, net of item-level discount_amount. Does not include order-level shipping or tax."
+      - name: line_profit_amount
+        description: "line_revenue minus line_cost (cost of goods only). Excludes shipping/tax, which are order-level costs — see stg_order_header.net_profit for the order-level equivalent."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_id
+            - product_id

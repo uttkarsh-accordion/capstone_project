@@ -1,21 +1,10 @@
-with order_agg as (
-
-    select
-        order_id,
-        employee_id,
-        sum(quantity * unit_price) as order_amount
-    from {{ ref('stg_orders') }}
-    group by order_id, employee_id
-
-),
-
-employee_agg as (
+with employee_agg as (
 
     select
         employee_id,
-        count(distinct order_id) as orders_processed,
-        sum(order_amount)        as total_sales_amount
-    from order_agg
+        count(distinct order_id)  as orders_processed,
+        sum(order_revenue)        as total_sales_amount
+    from {{ ref('stg_order_header') }}
     group by employee_id
 
 )
@@ -26,7 +15,7 @@ select
     e.employee_id,
     e.full_name,
     e.role,
-    e.work_location as work_location,
+    e.work_location,
     e.tenure_years as tenure,
     e.email,
     e.phone,
