@@ -12,7 +12,10 @@ models:
         tests:
           - accepted_values:
               values: ['Minor', 'Young', 'Middle-aged', 'Senior', 'Unknown']
-
+      - name: loyalty_tier
+        tests:
+          - accepted_values:
+              values: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'] 
   - name: stg_product
     columns:
       - name: product_id

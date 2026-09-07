@@ -23,6 +23,24 @@ exploded as (
 
 ),
 
+merged as (
+
+    select
+        order_id,
+        product_id,
+        sum(quantity)                         as quantity,
+        -- unit_price/cost_price assumed constant per product within an order;
+        -- take any one value rather than averaging
+        max(unit_price)                       as unit_price,
+        max(cost_price)                        as cost_price,
+        sum(item_discount_amount)               as item_discount_amount,
+        max(_source_file)                       as _source_file,
+        max(_loaded_at)                         as _loaded_at
+    from exploded
+    group by order_id, product_id
+
+),
+
 transformed as (
 
     select
@@ -39,8 +57,7 @@ transformed as (
             ) * 100
             else null
         end as line_profit_margin_percentage
-
-    from exploded
+    from merged
 
 )
 
