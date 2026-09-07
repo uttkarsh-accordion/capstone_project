@@ -1,0 +1,96 @@
+version: 2
+
+models:
+
+  - name: dim_customer
+    description: "Customer dimension with Type 2 SCD tracking (valid_from, valid_to, is_current), sourced from the full snapshot history in int_customer_cleaned."
+    columns:
+      - name: customer_key
+        description: "Surrogate key, generated from customer_id + dbt_valid_from. Unique per customer per version, not per customer alone, since SCD2 history means a customer can appear multiple times."
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+
+  - name: dim_product
+    description: "Product dimension, one row per product_id."
+    columns:
+      - name: product_key
+        tests:
+          - unique
+          - not_null
+      - name: product_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_store
+    description: "Store dimension, one row per store_id."
+    columns:
+      - name: store_key
+        tests:
+          - unique
+          - not_null
+      - name: store_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_employee
+    description: "Employee dimension, one row per employee_id, with order-volume metrics aggregated from stg_order_header."
+    columns:
+      - name: employee_key
+        tests:
+          - unique
+          - not_null
+      - name: employee_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_date
+    description: "Date dimension generated from a dbt date_spine spanning the data window, not sourced from transactional data."
+    columns:
+      - name: date_key
+        tests:
+          - unique
+          - not_null
+      - name: full_date
+        tests:
+          - unique
+          - not_null
+
+  - name: fact_sales
+    description: "Sales fact at order line item grain (order_id + product_id). Foreign keys to each dimension; profit_amount excludes order-level shipping and tax, which live at the order grain in stg_order_header."
+    columns:
+      - name: sales_key
+        tests:
+          - unique
+          - not_null
+      - name: customer_key
+        tests:
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_key
+      - name: product_key
+        tests:
+          - relationships:
+              to: ref('dim_product')
+              field: product_key
+      - name: store_key
+        tests:
+          - relationships:
+              to: ref('dim_store')
+              field: store_key
+      - name: date_key
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: employee_key
+        tests:
+          - relationships:
+              to: ref('dim_employee')
+              field: employee_key
