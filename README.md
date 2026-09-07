@@ -27,5 +27,3 @@ dbt snapshot
 dbt run
 dbt test
 ```
-
-## Test Comment 
